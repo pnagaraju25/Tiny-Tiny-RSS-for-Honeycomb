@@ -173,7 +173,7 @@ public class OnlineActivity extends CommonActivity {
 		if (isOffline) {
 			switchOfflineSuccess();			
 		} else {
-			checkTrial(false);
+			//checkTrial(false);
 			
 			/* if (getIntent().getExtras() != null) {
 				Intent i = getIntent();
@@ -1226,7 +1226,9 @@ public class OnlineActivity extends CommonActivity {
 
 		initMenu();
 		
-		List<PackageInfo> pkgs = getPackageManager()
+		menu.findItem(R.id.donate).setVisible(false);
+		
+		/* List<PackageInfo> pkgs = getPackageManager()
 				.getInstalledPackages(0);
 
 		for (PackageInfo p : pkgs) {
@@ -1235,7 +1237,7 @@ public class OnlineActivity extends CommonActivity {
 				menu.findItem(R.id.donate).setVisible(false);
 				break;
 			}
-		}
+		} */
 		
 		return true;
 	}
