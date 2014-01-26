@@ -10,6 +10,7 @@ import java.util.TimeZone;
 import org.fox.ttrss.types.Article;
 import org.fox.ttrss.types.ArticleList;
 import org.fox.ttrss.types.Feed;
+import org.fox.ttrss.util.HeadlinesImageGetter;
 import org.fox.ttrss.util.HeadlinesRequest;
 import org.fox.ttrss.util.TypefaceCache;
 import org.jsoup.Jsoup;
@@ -31,6 +32,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.Html;
 import android.text.Html.ImageGetter;
+import android.text.Spanned;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -768,10 +770,16 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 				if (!m_prefs.getBoolean("headlines_show_content", true)) {
 					te.setVisibility(View.GONE);
 				} else {
-					String excerpt = Jsoup.parse(articleContent).text(); 
+					/* String excerpt = Jsoup.parse(articleContent).text(); 
 					
 					if (excerpt.length() > CommonActivity.EXCERPT_MAX_SIZE)
-						excerpt = excerpt.substring(0, CommonActivity.EXCERPT_MAX_SIZE) + "...";
+						excerpt = excerpt.substring(0, CommonActivity.EXCERPT_MAX_SIZE) + "..."; */
+					
+					String excerptString = articleContent.length() > CommonActivity.EXCERPT_MAX_SIZE ? articleContent.substring(0, CommonActivity.EXCERPT_MAX_SIZE) + "..." :
+						articleContent;
+					
+					Spanned excerpt = Html.fromHtml(excerptString,
+							new HeadlinesImageGetter(te, m_activity), null);
 					
 					te.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineFontSize);
 					te.setText(excerpt);

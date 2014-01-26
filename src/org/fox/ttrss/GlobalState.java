@@ -1,12 +1,15 @@
 package org.fox.ttrss;
 
 import java.util.ArrayList;
+import java.util.WeakHashMap;
 
 import org.fox.ttrss.types.Article;
 import org.fox.ttrss.types.ArticleList;
 import org.fox.ttrss.types.Feed;
 
 import android.app.Application;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Parcelable;
 
@@ -20,6 +23,7 @@ public class GlobalState extends Application {
 	public String m_sessionId;
 	public int m_apiLevel;
 	public boolean m_canUseProgress;
+	public WeakHashMap<String, Drawable> m_drawableCache = new WeakHashMap<String, Drawable>();
 	
 	public static GlobalState getInstance(){
 		return m_singleton;
