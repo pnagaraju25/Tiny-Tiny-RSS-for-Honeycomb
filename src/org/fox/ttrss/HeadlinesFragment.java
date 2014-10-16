@@ -1,7 +1,5 @@
 package org.fox.ttrss;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -9,6 +7,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.TimeZone;
 
+import org.fox.ttrss.swipelistview.BaseSwipeListViewListener;
+import org.fox.ttrss.swipelistview.SwipeListView;
 import org.fox.ttrss.types.Article;
 import org.fox.ttrss.types.ArticleList;
 import org.fox.ttrss.types.Feed;
@@ -312,7 +312,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 	    }
 
 		
-		ListView list = (ListView)view.findViewById(R.id.headlines);		
+		SwipeListView list = (SwipeListView)view.findViewById(R.id.headlines);		
 		m_adapter = new ArticleListAdapter(getActivity(), R.layout.headlines_row, (ArrayList<Article>)m_articles);
 		
 		/* if (!m_activity.isCompatMode()) {
@@ -339,6 +339,34 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 		list.setOnScrollListener(this);
 		//list.setEmptyView(view.findViewById(R.id.no_headlines));
 		registerForContextMenu(list);
+		
+		list.setSwipeListViewListener(new BaseSwipeListViewListener() {
+			
+			@Override
+			public void onDismiss(int[] reverseSortedPositions) {
+
+				ArticleList tmp = new ArticleList();
+				
+				for (int position : reverseSortedPositions) {
+					try {
+						Article article = m_articles.get(position);
+						
+						if (article.unread)
+							tmp.add(article);
+						
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					
+                    m_articles.remove(position);
+                }
+				
+				m_activity.toggleArticlesUnread(tmp);
+
+                m_adapter.notifyDataSetChanged();
+			}
+			
+		});
 		
 		//m_activity.m_pullToRefreshAttacher.addRefreshableView(list, this);
 
