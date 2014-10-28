@@ -66,7 +66,7 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 			} */
 			
 			m_slidingMenu.setMode(SlidingMenu.LEFT);
-			m_slidingMenu.setTouchModeAbove(SlidingMenu.TOUCHMODE_FULLSCREEN);
+			m_slidingMenu.setTouchModeAbove(SlidingMenu.TOUCHMODE_MARGIN);
 			m_slidingMenu.attachToActivity(this, SlidingMenu.SLIDING_CONTENT);
 			m_slidingMenu.setMenu(R.layout.feeds);
 			m_slidingMenu.setSlidingEnabled(true);

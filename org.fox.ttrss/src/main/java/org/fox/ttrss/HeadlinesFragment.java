@@ -1,6 +1,5 @@
 package org.fox.ttrss;
 
-import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,8 +10,11 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.Html;
 import android.util.DisplayMetrics;
@@ -32,19 +34,19 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.gson.JsonElement;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.assist.FailReason;
+import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
 import com.nostra13.universalimageloader.core.imageaware.ImageAware;
 import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
-import com.nostra13.universalimageloader.utils.MemoryCacheUtils;
 
 import org.fox.ttrss.types.Article;
 import org.fox.ttrss.types.ArticleList;
@@ -60,6 +62,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.TimeZone;
 
 public class HeadlinesFragment extends Fragment implements OnItemClickListener, OnScrollListener {
@@ -662,14 +665,128 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 		public ImageView markedView;
 		public ImageView publishedView;
 		public TextView excerptView;
-		public ImageView flavorImageView;
 		public TextView authorView;
 		public TextView dateView;
 		public CheckBox selectionBoxView;
 		public ImageView menuButtonView;
 		public ViewGroup flavorImageHolder;
-		public ProgressBar flavorImageLoadingBar;
-	}
+		//public ProgressBar flavorImageLoadingBar;
+        public ViewPager flavorImagePager;
+    }
+
+    private class ArticleImagePagerAdapter extends PagerAdapter {
+        private List<String> m_urls;
+
+        public ArticleImagePagerAdapter() {
+            super();
+        }
+
+        public ArticleImagePagerAdapter(List<String> urls) {
+            super();
+
+            m_urls = urls;
+        }
+
+        @Override
+        public float getPageWidth(int position) {
+            return m_urls.size() > 1 ? 0.9f : 1f;
+        }
+
+        @Override
+        public int getCount() {
+            return m_urls.size();
+        }
+
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
+            return view == object;
+        }
+
+        @Override
+        public Object instantiateItem(final ViewGroup container, final int position) {
+            String url = m_urls.get(position);
+
+            Log.d(TAG, "called for URL: " + url);
+
+            LayoutInflater inflater = (LayoutInflater) container.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+            View view = inflater.inflate(R.layout.flavor_image, null);
+
+            ImageView imgView = (ImageView) view.findViewById(R.id.flavor_image);
+
+            DisplayImageOptions options = new DisplayImageOptions.Builder()
+                    .cacheInMemory(true)
+                    .resetViewBeforeLoading(true)
+                    .cacheOnDisk(true)
+                    .displayer(new FadeInBitmapDisplayer(200))
+                    .build();
+
+            ImageAware imageAware = new ImageViewAware(imgView, false);
+
+            final View fView = view;
+
+            ImageLoader.getInstance().displayImage(url, imageAware, options, new ImageLoadingListener() {
+
+                @Override
+                public void onLoadingCancelled(String arg0,
+                                               View arg1) {
+                    // TODO Auto-generated method stub
+
+                }
+
+                @Override
+                public void onLoadingComplete(String arg0,
+                                              View arg1, Bitmap arg2) {
+                    // TODO Auto-generated method stub
+
+                    if (!isAdded() || arg2 == null) return;
+
+                    if (arg2.getWidth() > 128 && arg2.getHeight() > 128) {
+
+                    } else {
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                container.removeView(fView);
+                            }
+                        });
+                    }
+
+                }
+
+                @Override
+                public void onLoadingFailed(String arg0,
+                                            View arg1, FailReason arg2) {
+                    // TODO Auto-generated method stub
+
+                    new Handler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            container.removeView(fView);
+                        }
+                    });
+
+                }
+
+                @Override
+                public void onLoadingStarted(String arg0,
+                                             View arg1) {
+                    // TODO Auto-generated method stub
+
+                }
+
+            });
+
+            ((ViewPager) container).addView(view, 0);
+
+            return view;
+        }
+
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
+            container.removeView((FrameLayout)object);
+        }
+    }
 	
 	private class ArticleListAdapter extends ArrayAdapter<Article> {
 		private ArrayList<Article> items;
@@ -755,13 +872,13 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 				holder.markedView = (ImageView)v.findViewById(R.id.marked);
 				holder.publishedView = (ImageView)v.findViewById(R.id.published);
 				holder.excerptView = (TextView)v.findViewById(R.id.excerpt);
-				holder.flavorImageView = (ImageView) v.findViewById(R.id.flavor_image);
 				holder.authorView = (TextView)v.findViewById(R.id.author);
 				holder.dateView = (TextView) v.findViewById(R.id.date);
 				holder.selectionBoxView = (CheckBox) v.findViewById(R.id.selected);
 				holder.menuButtonView = (ImageView) v.findViewById(R.id.article_menu_button);
 				holder.flavorImageHolder = (ViewGroup) v.findViewById(R.id.flavorImageHolder);
-                holder.flavorImageLoadingBar = (ProgressBar) v.findViewById(R.id.flavorImageLoadingBar);
+                //holder.flavorImageLoadingBar = (ProgressBar) v.findViewById(R.id.flavorImageLoadingBar);
+                holder.flavorImagePager = (ViewPager) v.findViewById(R.id.flavorImagePager);
 				
 				v.setTag(holder);
 				
@@ -857,12 +974,30 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 				}
 			}
 
-			if (holder.flavorImageView != null && m_prefs.getBoolean("headlines_show_flavor_image", true)) {
+			if (holder.flavorImagePager != null && m_prefs.getBoolean("headlines_show_flavor_image", true)) {
 				Document doc = Jsoup.parse(articleContent);
 
                 boolean loadableImageFound = false;
-				
-    			if (doc != null) {
+
+                if (doc != null) {
+                    List<String> urls = new ArrayList<String>();
+
+                    for (Element img : doc.select("img")) {
+                        String imgSrc = img.attr("src");
+
+                        // retarded schema-less urls
+                        if (imgSrc.indexOf("//") == 0)
+                            imgSrc = "http:" + imgSrc;
+
+                           urls.add(imgSrc);
+                    }
+
+                    ArticleImagePagerAdapter adapter = new ArticleImagePagerAdapter(urls);
+
+                    holder.flavorImagePager.setAdapter(adapter);
+                }
+
+    			/* if (doc != null) {
                     Element img = doc.select("img").first();
 
 					if (img != null) {
@@ -879,7 +1014,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 								.build();
 						
                         final ViewGroup flavorImageHolder = holder.flavorImageHolder;
-                        final ImageView flavorImageView = holder.flavorImageView;
+                        //final ImageView flavorImageView = holder.flavorImageView;
                         final ProgressBar flavorImageLoadingBar = holder.flavorImageLoadingBar;
 
                         ImageAware imageAware = new ImageViewAware(holder.flavorImageView, false);
@@ -941,9 +1076,9 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 
                 if (!loadableImageFound) {
                     holder.flavorImageHolder.setVisibility(View.GONE);
-                }
+                } */
 			} else {
-				holder.flavorImageHolder.setVisibility(View.GONE);
+				//holder.flavorImageHolder.setVisibility(View.GONE);
 			}
 			
 			String articleAuthor = article.author != null ? article.author : "";

@@ -71,7 +71,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
 
-            <FrameLayout
+            <!-- <FrameLayout
                 android:id="@+id/flavorImageHolder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -82,18 +82,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:id="@+id/flavorImageLoadingBar" />
+                    android:id="@+id/flavorImageLoadingBar" /> -->
 
-                <org.fox.ttrss.util.EnlargingImageView
-                    android:id="@+id/flavor_image"
+                <android.support.v4.view.ViewPager
+                    android:layout_span="2"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter"
-                    android:cropToPadding="true"
-                    android:visibility="visible" />
-            </FrameLayout>
+                    android:layout_height="200dp"
+                    android:id="@+id/flavorImagePager">
+                </android.support.v4.view.ViewPager>
+            <!-- </FrameLayout> -->
         </TableRow>
 
         <TableRow
