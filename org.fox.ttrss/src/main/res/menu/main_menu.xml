@@ -55,7 +55,7 @@
                 android:title="@string/headlines_mark_as_read"/>
             <item
                 android:id="@+id/headlines_select"
-                app:showAsAction=""
+                app:showAsAction="ifRoom"
                 android:icon="@drawable/ic_select_all_light"
                 android:title="@string/headlines_select"/>
 
@@ -99,7 +99,7 @@
                 android:title="@string/selection_select_none"/>
         </group> -->
         <group android:id="@+id/menu_group_article" >
-            <item
+            <!-- <item
                 android:id="@+id/toggle_marked"
                 android:icon="@drawable/ic_unimportant_light"
                 app:showAsAction="ifRoom"
@@ -108,23 +108,23 @@
                 android:id="@+id/toggle_published"
                 android:icon="@drawable/ic_menu_unpublished_light"
                 app:showAsAction="ifRoom"
-                android:title="@string/article_toggle_published"/>
-            <item
+                android:title="@string/article_toggle_published"/> -->
+            <!-- <item (TB)
                 android:id="@+id/toggle_attachments"
                 android:icon="@drawable/ic_menu_attaches_light"
                 app:showAsAction=""
-                android:title="@string/attachments_prompt"/>
+                android:title="@string/attachments_prompt"/> -->
             <item
                 android:id="@+id/share_article"
                 android:icon="@drawable/ic_share_light"
                 app:showAsAction="ifRoom"
                 android:title="@string/share_article"/>
             <!--  android:actionProviderClass="android.widget.ShareActionProvider" -->
-            <item
+            <!-- <item (TB)
                 android:id="@+id/set_labels"
                 app:showAsAction=""
                 android:icon="@drawable/ic_labels_light"
-                android:title="@string/article_set_labels"/>
+                android:title="@string/article_set_labels"/> -->
             <item
                 android:id="@+id/article_set_note"
                 app:showAsAction=""
@@ -134,11 +134,11 @@
                 android:id="@+id/catchup_above"
                 android:title="@string/article_mark_read_above"/>
 
-            <item
+            <!-- <item (TB)
                 android:id="@+id/set_unread"
                 android:icon="@drawable/ic_read_light"
                 app:showAsAction=""
-                android:title="@string/article_set_unread"/>
+                android:title="@string/article_set_unread"/> -->
 
         </group>
 

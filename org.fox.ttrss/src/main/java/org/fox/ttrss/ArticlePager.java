@@ -10,8 +10,11 @@ import android.support.v4.app.ClassloaderWorkaroundFragmentStatePagerAdapter;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.ViewPager;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -37,6 +40,7 @@ public class ArticlePager extends Fragment {
 	private String m_searchQuery = "";
 	private Feed m_feed;
 	private SharedPreferences m_prefs;
+    private Toolbar m_toolbar;
 	
 	private class PagerAdapter extends ClassloaderWorkaroundFragmentStatePagerAdapter {
 		
@@ -76,7 +80,26 @@ public class ArticlePager extends Fragment {
 	public void setSearchQuery(String searchQuery) {
 		m_searchQuery = searchQuery;
 	}
-	
+
+    public void updateToolbarMenu() {
+        if (m_toolbar != null) {
+            Menu menu = m_toolbar.getMenu();
+
+            menu.findItem(R.id.set_labels).setEnabled(m_activity.getApiLevel() >= 1);
+
+            if (m_article != null) {
+                menu.findItem(R.id.set_unread).setIcon(m_article.unread ? R.drawable.ic_unread_light :
+                        R.drawable.ic_read_light);
+
+                if (m_article.attachments != null && m_article.attachments.size() > 0) {
+                    menu.findItem(R.id.toggle_attachments).setVisible(true);
+                } else {
+                    menu.findItem(R.id.toggle_attachments).setVisible(false);
+                }
+            }
+        }
+    }
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {    	
 		View view = inflater.inflate(R.layout.article_pager, container, false);
@@ -85,7 +108,25 @@ public class ArticlePager extends Fragment {
 			m_article = savedInstanceState.getParcelable("article");
 			m_feed = savedInstanceState.getParcelable("feed");
 		}
-		
+
+        m_toolbar = (Toolbar) view.findViewById(R.id.article_pager_toolbar);
+
+        if (m_toolbar != null) {
+            m_toolbar.inflateMenu(R.menu.article_pager_toolbar_menu);
+            m_toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem menuItem) {
+
+                    boolean rc =  m_activity.onOptionsItemSelected(menuItem);
+                    updateToolbarMenu();
+
+                    return rc;
+                }
+            });
+
+            updateToolbarMenu();
+        }
+
 		m_adapter = new PagerAdapter(getActivity().getSupportFragmentManager());
 		
 		ViewPager pager = (ViewPager) view.findViewById(R.id.article_pager);
@@ -117,7 +158,9 @@ public class ArticlePager extends Fragment {
 				
 				if (article != null) {
 					m_article = article;
-					
+
+                    updateToolbarMenu();
+
 					/* if (article.unread) {
 						article.unread = false;
 						m_activity.saveArticleUnread(article);

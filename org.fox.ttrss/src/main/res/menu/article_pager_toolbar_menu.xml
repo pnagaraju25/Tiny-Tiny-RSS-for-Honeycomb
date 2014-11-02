@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/toggle_marked"
+        android:icon="@drawable/ic_unimportant_light"
+        app:showAsAction="always"
+        android:title="@string/article_toggle_marked"/>
+    <item
+        android:id="@+id/toggle_published"
+        android:icon="@drawable/ic_menu_unpublished_light"
+        app:showAsAction="always"
+        android:title="@string/article_toggle_published"/>
+    <item
+        android:id="@+id/toggle_attachments"
+        android:icon="@drawable/ic_menu_attaches_light"
+        app:showAsAction="always|withText"
+        android:title="@string/article_attachments_short"/>
+
+    <item
+        android:id="@+id/set_labels"
+        app:showAsAction="always|withText"
+        android:icon="@drawable/ic_labels_light"
+        android:title="@string/article_set_labels_short"/>
+
+    <item
+        android:id="@+id/set_unread"
+        android:icon="@drawable/ic_read_light"
+        app:showAsAction="always|withText"
+        android:title="@string/article_set_unread_short"/>
+</menu>

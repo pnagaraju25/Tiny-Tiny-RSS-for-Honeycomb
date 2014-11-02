@@ -8,14 +8,26 @@
         android:id="@+id/article_pager"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_alignParentTop="true">
+        android:layout_above="@+id/article_pager_toolbar"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true">
     </android.support.v4.view.ViewPager>
 
     <com.viewpagerindicator.UnderlinePageIndicator
         android:id="@+id/article_titles"
         android:layout_width="fill_parent"
         android:layout_height="2dp"
+        android:layout_below="@+id/article_pager"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <android.support.v7.widget.Toolbar
+        android:layout_height="?attr/actionBarSize"
+        android:background="?secondaryToolbarBackground"
+        android:layout_width="match_parent"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/article_pager_toolbar" />
 
 </RelativeLayout>

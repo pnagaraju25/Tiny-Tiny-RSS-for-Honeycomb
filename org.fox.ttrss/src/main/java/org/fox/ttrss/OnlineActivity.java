@@ -1552,8 +1552,8 @@ public class OnlineActivity extends CommonActivity {
 			m_menu.setGroupVisible(R.id.menu_group_article, false);
 			m_menu.setGroupVisible(R.id.menu_group_feeds, false);
 			
-			m_menu.findItem(R.id.set_labels).setEnabled(getApiLevel() >= 1);
-			m_menu.findItem(R.id.article_set_note).setEnabled(getApiLevel() >= 1);
+			//m_menu.findItem(R.id.set_labels).setEnabled(getApiLevel() >= 1);
+            m_menu.findItem(R.id.article_set_note).setEnabled(getApiLevel() >= 1);
 			m_menu.findItem(R.id.subscribe_to_feed).setEnabled(getApiLevel() >= 5);
 			
 			MenuItem search = m_menu.findItem(R.id.search);
@@ -1571,8 +1571,8 @@ public class OnlineActivity extends CommonActivity {
 					m_menu.findItem(R.id.toggle_published).setIcon(article.published ? R.drawable.ic_menu_published_light :
 						R.drawable.ic_menu_unpublished_light);
 
-					m_menu.findItem(R.id.set_unread).setIcon(article.unread ? R.drawable.ic_unread_light :
-						R.drawable.ic_read_light);
+					//m_menu.findItem(R.id.set_unread).setIcon(article.unread ? R.drawable.ic_unread_light :
+					//	R.drawable.ic_read_light);
 				}				
 			}
 			
