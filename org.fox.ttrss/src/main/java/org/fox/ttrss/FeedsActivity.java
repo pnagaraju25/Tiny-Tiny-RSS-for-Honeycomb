@@ -27,8 +27,10 @@ import org.fox.ttrss.types.Feed;
 import org.fox.ttrss.types.FeedCategory;
 import org.fox.ttrss.util.AppRater;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Stack;
 
 public class FeedsActivity extends OnlineActivity implements HeadlinesEventListener {
 	private final String TAG = this.getClass().getSimpleName();
@@ -42,6 +44,8 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 
     private ActionBarDrawerToggle m_drawerToggle;
     private DrawerLayout m_drawerLayout;
+
+    protected ArrayList<FeedCategory> m_catStack = new ArrayList<FeedCategory>();
 
 	@SuppressLint("NewApi")
 	@Override
@@ -137,12 +141,8 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 			//m_pullToRefreshAttacher.setRefreshing(true);
 
 			FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-							
-			if (m_prefs.getBoolean("enable_cats", false)) {
-				ft.replace(R.id.feeds_fragment, new FeedCategoriesFragment(), FRAG_CATS);				
-			} else {
-				ft.replace(R.id.feeds_fragment, new FeedsFragment(), FRAG_FEEDS);
-			}
+
+            displayRootView(ft);
 
             HeadlinesFragment hf = new HeadlinesFragment();
             hf.initialize(new Feed(-3, getString(R.string.fresh_articles), false));
@@ -161,6 +161,8 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 			//m_actionbarRevertDepth = savedInstanceState.getInt("actionbarRevertDepth");
 			m_feedIsSelected = savedInstanceState.getBoolean("feedIsSelected");
 			//m_feedWasSelected = savedInstanceState.getBoolean("feedWasSelected");
+
+            m_catStack = savedInstanceState.getParcelableArrayList("catStack");
 
 			/* if (findViewById(R.id.sw600dp_port_anchor) != null && m_feedWasSelected && m_slidingMenu != null) {
 				m_slidingMenu.setBehindWidth(getScreenWidthInPixel() * 2/3);
@@ -217,11 +219,11 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 		GlobalState.getInstance().m_loadedArticles.clear();
 		//m_pullToRefreshAttacher.setRefreshing(true);
 
-			FragmentTransaction ft = getSupportFragmentManager()
+			/* FragmentTransaction ft = getSupportFragmentManager()
 					.beginTransaction();
 
 			ft.replace(R.id.headlines_fragment, new LoadingFragment(), null);
-			ft.commit();
+			ft.commit(); */
 
 			final Feed fFeed = feed;
 			
@@ -234,7 +236,7 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 					HeadlinesFragment hf = new HeadlinesFragment();
 					hf.initialize(fFeed);
 					ft.replace(R.id.headlines_fragment, hf, FRAG_HEADLINES);
-					
+					ft.addToBackStack(null);
 					ft.commit();
 
 					m_feedIsSelected = true;
@@ -266,16 +268,17 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 				fc.setSelectedCategory(null);
 			}
 
+            m_catStack.add(cat);
+
 			FragmentTransaction ft = getSupportFragmentManager()
 					.beginTransaction();
 
 			FeedsFragment ff = new FeedsFragment();
 			ff.initialize(cat, true);
 			ft.replace(R.id.feeds_fragment, ff, FRAG_FEEDS);
-
-			ft.addToBackStack(null);
+            //ft.addToBackStack(null);
 			ft.commit();
-			
+
 			//getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			//m_actionbarUpEnabled = true;
 			//m_actionbarRevertDepth = m_actionbarRevertDepth + 1;
@@ -376,11 +379,6 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 		}
 	}
 
-    @Override
-    public void onBackPressed() {
-        finish();
-    }
-
 	@Override
 	protected void loginSuccess(boolean refresh) {
 		invalidateOptionsMenu();
@@ -393,6 +391,7 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 		super.onSaveInstanceState(out);	
 		
 		out.putBoolean("feedIsSelected", m_feedIsSelected);
+        out.putParcelableArrayList("catStack", m_catStack);
 
 		GlobalState.getInstance().save(out);
 	}
@@ -507,4 +506,24 @@ public class FeedsActivity extends OnlineActivity implements HeadlinesEventListe
 		req.execute(map);
 
 	}
+
+    public void displayRootView(FragmentTransaction existingTransaction) {
+        FragmentTransaction ft = existingTransaction;
+
+        if (existingTransaction == null) {
+            ft = getSupportFragmentManager().beginTransaction();
+        }
+
+        if (m_prefs.getBoolean("enable_cats", false)) {
+            ft.replace(R.id.feeds_fragment, new FeedCategoriesFragment(), FRAG_CATS);
+        } else {
+            ft.replace(R.id.feeds_fragment, new FeedsFragment(), FRAG_FEEDS);
+        }
+
+        m_catStack.add(new FeedCategory()); // root
+
+        if (existingTransaction == null) {
+            ft.commit();
+        }
+    }
 }

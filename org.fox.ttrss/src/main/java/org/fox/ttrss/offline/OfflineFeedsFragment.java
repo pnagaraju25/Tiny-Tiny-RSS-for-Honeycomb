@@ -170,7 +170,9 @@ public class OfflineFeedsFragment extends Fragment implements OnItemClickListene
             layout.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    m_activity.getSupportFragmentManager().popBackStack();
+
+
+
                 }
             });
 

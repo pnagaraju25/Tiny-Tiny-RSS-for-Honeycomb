@@ -71,6 +71,7 @@ public class FeedsFragment extends Fragment implements OnItemClickListener, OnSh
 	private boolean m_enableFeedIcons;
 	private boolean m_feedIconsChecked = false;
 	private SwipeRefreshLayout m_swipeLayout;
+
     private boolean m_enableParentBtn = false;
 	
 	public void initialize(FeedCategory cat, boolean enableParentBtn) {
@@ -312,7 +313,21 @@ public class FeedsFragment extends Fragment implements OnItemClickListener, OnSh
             layout.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    m_activity.getSupportFragmentManager().popBackStack();
+                    ArrayList<FeedCategory> catStack = m_activity.m_catStack;
+
+                    if (catStack.size() >= 2) {
+
+                        catStack.remove(catStack.size()-1); // current fragment
+                        FeedCategory cat = catStack.remove(catStack.size()-1); // parent
+
+                        if (catStack.size() == 0) {
+                            m_activity.displayRootView(null);
+                        } else {
+                            m_activity.onCatSelected(cat, false);
+                        }
+                    }
+
+                    //m_activity.getSupportFragmentManager().popBackStack();
                 }
             });
 
