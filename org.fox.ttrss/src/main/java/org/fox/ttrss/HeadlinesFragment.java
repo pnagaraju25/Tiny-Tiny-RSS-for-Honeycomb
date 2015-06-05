@@ -17,6 +17,8 @@ import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.Html;
 import android.transition.Fade;
 import android.transition.Transition;
@@ -37,7 +39,6 @@ import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -47,8 +48,6 @@ import android.widget.TextView;
 import com.amulyakhare.textdrawable.TextDrawable;
 import com.amulyakhare.textdrawable.util.ColorGenerator;
 import com.google.gson.JsonElement;
-import com.nhaarman.listviewanimations.appearance.AnimationAdapter;
-import com.nhaarman.listviewanimations.appearance.simple.SwingBottomInAnimationAdapter;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.assist.FailReason;
@@ -91,8 +90,9 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 	private SharedPreferences m_prefs;
 	
 	private ArticleListAdapter m_adapter;
-	private AnimationAdapter m_animationAdapter;
+	//private AnimationAdapter m_animationAdapter;
 	private ArticleList m_articles = new ArticleList(); //GlobalState.getInstance().m_loadedArticles;
+	private LinearLayoutManager m_layoutManager;
 	//private ArticleList m_selectedArticles = new ArticleList();
 	private ArticleList m_readArticles = new ArticleList();
 	private HeadlinesEventListener m_listener;
@@ -101,7 +101,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 	private int m_maxImageSize = 0;
     private boolean m_compactLayoutMode = false;
     private int m_listPreviousVisibleItem;
-    private ListView m_list;
+    private RecyclerView m_list;
 
 	public ArticleList getSelectedArticles() {
         ArticleList tmp = new ArticleList();
@@ -355,7 +355,9 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 			}
 		});
 
-		m_list = (ListView)view.findViewById(R.id.headlines_list);
+		m_list = (RecyclerView) view.findViewById(R.id.headlines_list);
+		m_layoutManager = new LinearLayoutManager(m_activity);
+		m_list.setLayoutManager(m_layoutManager);
 
         if (m_prefs.getBoolean("headlines_mark_read_scroll", false)) {
             WindowManager wm = (WindowManager) m_activity.getSystemService(Context.WINDOW_SERVICE);
@@ -366,26 +368,23 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 
             layout.setLayoutParams(new ListView.LayoutParams(ListView.LayoutParams.MATCH_PARENT, screenHeight));
 
-            m_list.addFooterView(layout, null, false);
+            ///m_list.addFooterView(layout, null, false);
         }
 
         if (m_activity.isSmallScreen()) {
             View layout = inflater.inflate(R.layout.headlines_heading_spacer, m_list, false);
-            m_list.addHeaderView(layout);
+            ///m_list.addHeaderView(layout);
 
             m_swipeLayout.setProgressViewOffset(false, 0,
                     m_activity.getResources().getDimensionPixelSize(R.dimen.abc_action_bar_default_height_material) +
                     m_activity.getResources().getDimensionPixelSize(R.dimen.abc_action_bar_default_padding_material));
         }
 
-		m_adapter = new ArticleListAdapter(getActivity(), R.layout.headlines_row, (ArrayList<Article>)m_articles);
-		m_animationAdapter = new SwingBottomInAnimationAdapter(m_adapter);
+		m_adapter = new ArticleListAdapter(getActivity(), (ArrayList<Article>)m_articles);
+		m_list.setAdapter(m_adapter);
 
-		m_animationAdapter.setAbsListView(m_list);
-		m_list.setAdapter(m_animationAdapter);
-
-		m_list.setOnItemClickListener(this);
-		m_list.setOnScrollListener(this);
+		///m_list.setOnItemClickListener(this);
+		///m_list.setOnScrollListener(this);
 		registerForContextMenu(m_list);
 
         if (m_activity.isSmallScreen()) {
@@ -483,9 +482,10 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 				if (getView() != null) {
 					Log.d(TAG, "scroll hack");
 					m_autoCatchupDisabled = true;
-					m_list.setSelection(0);
+					///m_list.setSelection(0);
+					m_layoutManager.scrollToPosition(0);
 					m_autoCatchupDisabled = false;
-					m_animationAdapter.reset();
+					///m_animationAdapter.reset();
 					m_articles.clear();
 					m_adapter.notifyDataSetChanged();
 				}
@@ -516,7 +516,14 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 						
 						if (m_articles.indexOf(m_activeArticle) == -1)
 							m_activeArticle = null;
-						
+
+						if (!fappend && !m_activity.isTablet()) {
+							Log.d(TAG, "adding spacer!");
+
+							Article spacer = new Article(-2);
+							m_articles.add(0, spacer);
+						}
+
 						m_adapter.notifyDataSetChanged();
 						m_listener.onHeadlinesLoaded(fappend);
 						
@@ -622,7 +629,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
         out.putBoolean("compactLayoutMode", m_compactLayoutMode);
 	}
 
-	static class HeadlineViewHolder {
+	public static class ArticleViewHolder extends RecyclerView.ViewHolder {
 		public TextView titleView;
 		public TextView feedTitleView;
 		public ImageView markedView;
@@ -635,13 +642,36 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 		public ImageView menuButtonView;
 		public ViewGroup flavorImageHolder;
 		public ProgressBar flavorImageLoadingBar;
-        public View flavorImageArrow;
-        public View headlineFooter;
-        public ImageView textImage;
-        public ImageView textChecked;
-    }
-	
-	private class ArticleListAdapter extends ArrayAdapter<Article> {
+		public View flavorImageArrow;
+		public View headlineFooter;
+		public ImageView textImage;
+		public ImageView textChecked;
+
+		public ArticleViewHolder(View v) {
+			super(v);
+
+			titleView = (TextView)v.findViewById(R.id.title);
+			feedTitleView = (TextView)v.findViewById(R.id.feed_title);
+			markedView = (ImageView)v.findViewById(R.id.marked);
+			publishedView = (ImageView)v.findViewById(R.id.published);
+			excerptView = (TextView)v.findViewById(R.id.excerpt);
+			flavorImageView = (ImageView) v.findViewById(R.id.flavor_image);
+			authorView = (TextView)v.findViewById(R.id.author);
+			dateView = (TextView) v.findViewById(R.id.date);
+			selectionBoxView = (CheckBox) v.findViewById(R.id.selected);
+			menuButtonView = (ImageView) v.findViewById(R.id.article_menu_button);
+			flavorImageHolder = (ViewGroup) v.findViewById(R.id.flavorImageHolder);
+			flavorImageLoadingBar = (ProgressBar) v.findViewById(R.id.flavorImageLoadingBar);
+			flavorImageArrow = v.findViewById(R.id.flavorImageArrow);
+			headlineFooter = v.findViewById(R.id.headline_footer);
+			textImage = (ImageView) v.findViewById(R.id.text_image);
+			textChecked = (ImageView) v.findViewById(R.id.text_checked);
+
+		}
+	}
+
+	private class ArticleListAdapter extends RecyclerView.Adapter<ArticleViewHolder> {
+
 		private ArrayList<Article> items;
 		
 		public static final int VIEW_NORMAL = 0;
@@ -649,8 +679,9 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 		public static final int VIEW_SELECTED = 2;
 		public static final int VIEW_SELECTED_UNREAD = 3;
 		public static final int VIEW_LOADMORE = 4;
+		public static final int VIEW_SPACER = 5;
 		
-		public static final int VIEW_COUNT = VIEW_LOADMORE+1;
+		public static final int VIEW_COUNT = VIEW_SPACER +1;
 		
 		private final Integer[] origTitleColors = new Integer[VIEW_COUNT];
 		private final int titleHighScoreUnreadColor;
@@ -658,8 +689,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
         private ColorGenerator m_colorGenerator = ColorGenerator.DEFAULT;
         private TextDrawable.IBuilder m_drawableBuilder = TextDrawable.builder().round();
 
-		public ArticleListAdapter(Context context, int textViewResourceId, ArrayList<Article> items) {
-			super(context, textViewResourceId, items);
+		public ArticleListAdapter(Context context, ArrayList<Article> items) {
 			this.items = items;
 
 			Theme theme = context.getTheme();
@@ -667,9 +697,370 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 			theme.resolveAttribute(R.attr.headlineTitleHighScoreUnreadTextColor, tv, true);
 			titleHighScoreUnreadColor = tv.data;
 		}
-		
-		public int getViewTypeCount() {
-			return VIEW_COUNT;
+
+		@Override
+		public ArticleViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
+
+			int layoutId = m_compactLayoutMode ? R.layout.headlines_row_compact : R.layout.headlines_row;
+
+			switch (viewType) {
+				case VIEW_SPACER:
+					layoutId = R.layout.headlines_heading_spacer;
+					break;
+				case VIEW_LOADMORE:
+					layoutId = R.layout.headlines_row_loadmore;
+					break;
+				case VIEW_UNREAD:
+					layoutId = m_compactLayoutMode ? R.layout.headlines_row_unread_compact : R.layout.headlines_row_unread;
+					break;
+				case VIEW_SELECTED:
+					layoutId = m_compactLayoutMode ? R.layout.headlines_row_selected_compact : R.layout.headlines_row;
+					break;
+				case VIEW_SELECTED_UNREAD:
+					layoutId = m_compactLayoutMode ? R.layout.headlines_row_selected_unread_compact : R.layout.headlines_row_unread;
+					break;
+			}
+
+			LayoutInflater vi = (LayoutInflater)getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+			View v = vi.inflate(layoutId, null);
+
+			ArticleViewHolder vh = new ArticleViewHolder(v);
+
+			return vh;
+		}
+
+		@Override
+		public void onBindViewHolder(final ArticleViewHolder holder, int position) {
+			final Article article = items.get(position);
+
+			int headlineFontSize = Integer.parseInt(m_prefs.getString("headlines_font_size_sp", "13"));
+			int headlineSmallFontSize = Math.max(10, Math.min(18, headlineFontSize - 2));
+
+			// block footer clicks to make button/selection clicking easier
+			if (holder.headlineFooter != null) {
+				holder.headlineFooter.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View view) {
+						//
+					}
+				});
+			}
+
+			if (holder.textImage != null) {
+				updateTextCheckedState(holder, article);
+
+				holder.textImage.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View view) {
+						Log.d(TAG, "textImage : onclicked");
+
+						article.selected = !article.selected;
+
+						updateTextCheckedState(holder, article);
+
+						m_listener.onArticleListSelectionChange(getSelectedArticles());
+
+						Log.d(TAG, "num selected: " + getSelectedArticles().size());
+					}
+				});
+
+			}
+
+			if (holder.titleView != null) {
+				holder.titleView.setText(Html.fromHtml(article.title));
+
+				holder.titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, Math.min(21, headlineFontSize + 3));
+
+				adjustTitleTextView(article.score, holder.titleView, position);
+			}
+
+			if (holder.feedTitleView != null) {
+				if (article.feed_title != null && (m_feed.is_cat || m_feed.id < 0)) {
+					holder.feedTitleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineSmallFontSize);
+					holder.feedTitleView.setText(article.feed_title);
+
+				} else {
+					holder.feedTitleView.setVisibility(View.GONE);
+				}
+
+			}
+
+			TypedValue tvAccent = new TypedValue();
+			m_activity.getTheme().resolveAttribute(R.attr.colorAccent, tvAccent, true);
+
+			if (holder.markedView != null) {
+				TypedValue tv = new TypedValue();
+				m_activity.getTheme().resolveAttribute(article.marked ? R.attr.ic_star : R.attr.ic_star_outline, tv, true);
+
+				holder.markedView.setImageResource(tv.resourceId);
+
+				if (article.marked)
+					holder.markedView.setColorFilter(tvAccent.data);
+				else
+					holder.markedView.setColorFilter(null);
+
+				holder.markedView.setOnClickListener(new OnClickListener() {
+
+					@Override
+					public void onClick(View v) {
+						article.marked = !article.marked;
+						m_adapter.notifyDataSetChanged();
+
+						m_activity.saveArticleMarked(article);
+					}
+				});
+			}
+
+
+			if (holder.publishedView != null) {
+				TypedValue tv = new TypedValue();
+				m_activity.getTheme().resolveAttribute(article.published ? R.attr.ic_checkbox_marked : R.attr.ic_rss_box, tv, true);
+
+				holder.publishedView.setImageResource(tv.resourceId);
+
+				if (article.published)
+					holder.publishedView.setColorFilter(tvAccent.data);
+				else
+					holder.publishedView.setColorFilter(null);
+
+				holder.publishedView.setOnClickListener(new OnClickListener() {
+
+					@Override
+					public void onClick(View v) {
+						article.published = !article.published;
+						m_adapter.notifyDataSetChanged();
+
+						m_activity.saveArticlePublished(article);
+					}
+				});
+			}
+
+			String articleContent = article.content != null ? article.content : "";
+
+			String articleContentReduced = articleContent.length() > CommonActivity.EXCERPT_MAX_QUERY_LENGTH ?
+					articleContent.substring(0, CommonActivity.EXCERPT_MAX_QUERY_LENGTH) : articleContent;
+
+			if (article.articleDoc == null)
+				article.articleDoc = Jsoup.parse(articleContentReduced);
+
+			if (holder.excerptView != null) {
+				if (!m_prefs.getBoolean("headlines_show_content", true)) {
+					holder.excerptView.setVisibility(View.GONE);
+				} else {
+					String excerpt;
+
+					if (m_activity.getApiLevel() >= 11) {
+						excerpt = article.excerpt != null ? article.excerpt : "";
+						excerpt = excerpt.replace("&hellip;", "…");
+						excerpt = excerpt.replace("]]>", "");
+						excerpt = Jsoup.parse(excerpt).text();
+					} else {
+						excerpt = article.articleDoc.text();
+
+						if (excerpt.length() > CommonActivity.EXCERPT_MAX_LENGTH)
+							excerpt = excerpt.substring(0, CommonActivity.EXCERPT_MAX_LENGTH) + "…";
+					}
+
+					holder.excerptView.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineFontSize);
+					holder.excerptView.setText(excerpt);
+				}
+			}
+
+			if (!m_compactLayoutMode) {
+				boolean showFlavorImage = "HL_DEFAULT".equals(m_prefs.getString("headline_mode", "HL_DEFAULT"));
+
+				if (showFlavorImage && holder.flavorImageView != null) {
+
+					holder.flavorImageArrow.setVisibility(View.GONE);
+
+					if (article.noValidFlavorImage) {
+						holder.flavorImageHolder.setVisibility(View.GONE);
+					} else if (article.articleDoc != null) {
+
+						if (article.flavorImage == null) {
+
+							Elements imgs = article.articleDoc.select("img");
+
+							for (Element tmp : imgs) {
+								try {
+									if (Integer.valueOf(tmp.attr("width")) > FLAVOR_IMG_MIN_WIDTH && Integer.valueOf(tmp.attr("width")) > FLAVOR_IMG_MIN_HEIGHT) {
+										article.flavorImage = tmp;
+										break;
+									}
+								} catch (NumberFormatException e) {
+									//
+								}
+							}
+
+							if (article.flavorImage == null)
+								article.flavorImage = imgs.first();
+						}
+
+						if (article.flavorImage != null) {
+
+							String imgSrc = article.flavorImage.attr("src");
+							final String imgSrcFirst = imgSrc;
+
+							// retarded schema-less urls
+							if (imgSrc.indexOf("//") == 0)
+								imgSrc = "http:" + imgSrc;
+
+							DisplayImageOptions options = new DisplayImageOptions.Builder()
+									.cacheInMemory(true)
+									.resetViewBeforeLoading(true)
+									.cacheOnDisk(true)
+									.build();
+
+							ViewCompat.setTransitionName(holder.flavorImageView, "TRANSITION:ARTICLE_IMAGES_PAGER");
+
+							holder.flavorImageView.setOnClickListener(new OnClickListener() {
+								@Override
+								public void onClick(View view) {
+
+									Intent intent = new Intent(m_activity, ArticleImagesPagerActivity.class);
+									intent.putExtra("firstSrc", imgSrcFirst);
+									intent.putExtra("title", article.title);
+									intent.putExtra("content", article.content);
+
+									ActivityOptionsCompat options =
+											ActivityOptionsCompat.makeSceneTransitionAnimation(m_activity,
+													holder.flavorImageView,   // The view which starts the transition
+													"TRANSITION:ARTICLE_IMAGES_PAGER" // The transitionName of the view we’re transitioning to
+											);
+									ActivityCompat.startActivity(m_activity, intent, options.toBundle());
+
+									//startActivityForResult(intent, 0);
+								}
+							});
+
+							final ViewGroup flavorImageHolder = holder.flavorImageHolder;
+							final ProgressBar flavorImageLoadingBar = holder.flavorImageLoadingBar;
+
+							ImageAware imageAware = new ImageViewAware(holder.flavorImageView, false);
+
+							ImageLoader.getInstance().displayImage(imgSrc, imageAware, options, new ImageLoadingListener() {
+
+								@Override
+								public void onLoadingCancelled(String arg0,
+															   View arg1) {
+									// TODO Auto-generated method stub
+
+								}
+
+								@TargetApi(Build.VERSION_CODES.HONEYCOMB)
+								@Override
+								public void onLoadingComplete(String arg0,
+															  View arg1, Bitmap arg2) {
+									// TODO Auto-generated method stub
+
+									if (!isAdded() || arg2 == null) return;
+
+									flavorImageLoadingBar.setVisibility(View.INVISIBLE);
+
+									if (arg2.getWidth() > FLAVOR_IMG_MIN_WIDTH && arg2.getHeight() > FLAVOR_IMG_MIN_HEIGHT) {
+										flavorImageHolder.setVisibility(View.VISIBLE);
+									} else {
+										flavorImageHolder.setVisibility(View.GONE);
+									}
+								}
+
+								@Override
+								public void onLoadingFailed(String arg0,
+															View arg1, FailReason arg2) {
+									// TODO Auto-generated method stub
+									flavorImageHolder.setVisibility(View.GONE);
+									article.noValidFlavorImage = true;
+								}
+
+								@Override
+								public void onLoadingStarted(String arg0,
+															 View arg1) {
+									// TODO Auto-generated method stub
+
+								}
+
+							});
+						} else{
+							article.noValidFlavorImage = true;
+							holder.flavorImageHolder.setVisibility(View.GONE);
+						}
+
+					} else {
+						article.noValidFlavorImage = true;
+						holder.flavorImageHolder.setVisibility(View.GONE);
+					}
+
+				} else if (holder.flavorImageHolder != null) {
+					holder.flavorImageHolder.setVisibility(View.GONE);
+				}
+
+			}
+
+			String articleAuthor = article.author != null ? article.author : "";
+
+
+			if (holder.authorView != null) {
+				holder.authorView.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineSmallFontSize);
+
+				if (articleAuthor.length() > 0) {
+					holder.authorView.setText(getString(R.string.author_formatted, articleAuthor));
+				} else {
+					holder.authorView.setText("");
+				}
+			}
+
+			if (holder.dateView != null) {
+				holder.dateView.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineSmallFontSize);
+
+				Date d = new Date((long)article.updated * 1000);
+				Date now = new Date();
+
+				DateFormat df;
+
+				if (now.getYear() == d.getYear() && now.getMonth() == d.getMonth() && now.getDay() == d.getDay()) {
+					df = new SimpleDateFormat("HH:mm");
+				} else {
+					df = new SimpleDateFormat("MMM dd");
+				}
+
+				df.setTimeZone(TimeZone.getDefault());
+				holder.dateView.setText(df.format(d));
+			}
+
+
+			if (holder.selectionBoxView != null) {
+				holder.selectionBoxView.setChecked(article.selected);
+				holder.selectionBoxView.setOnClickListener(new OnClickListener() {
+
+					@Override
+					public void onClick(View view) {
+						CheckBox cb = (CheckBox)view;
+
+						if (cb.isChecked()) {
+							article.selected = true;
+						} else {
+							article.selected = false;
+						}
+
+						m_listener.onArticleListSelectionChange(getSelectedArticles());
+
+						Log.d(TAG, "num selected: " + getSelectedArticles().size());
+					}
+				});
+			}
+
+			if (holder.menuButtonView != null) {
+				//if (m_activity.isDarkTheme())
+				//	ib.setImageResource(R.drawable.ic_mailbox_collapsed_holo_dark);
+
+				holder.menuButtonView.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View v) {
+						getActivity().openContextMenu(v);
+					}
+				});
+			}
+
 		}
 
 		@Override
@@ -677,7 +1068,11 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 			Article a = items.get(position);
 			
 			if (a.id == -1) {
+				Log.d(TAG, "LOADMORE");
 				return VIEW_LOADMORE;
+			} else if (a.id == -2) {
+				Log.d(TAG, "SPACER");
+				return VIEW_SPACER;
 			} else if (m_activeArticle != null && a.id == m_activeArticle.id && a.unread) {
 				return VIEW_SELECTED_UNREAD;
 			} else if (m_activeArticle != null && a.id == m_activeArticle.id) {
@@ -689,7 +1084,12 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 			}			
 		}
 
-        private void updateTextCheckedState(HeadlineViewHolder holder, Article item) {
+		@Override
+		public int getItemCount() {
+			return items.size();
+		}
+
+		private void updateTextCheckedState(ArticleViewHolder holder, Article item) {
             String tmp = item.title.length() > 0 ? item.title.substring(0, 1) : "?";
 
             if (item.selected) {
@@ -703,13 +1103,13 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
             }
         }
 
-		@Override
+		/*@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
 
 			View v = convertView;
 			
 			final Article article = items.get(position);
-			final HeadlineViewHolder holder;
+			final ArticleViewHolder holder;
 			
 			int headlineFontSize = Integer.parseInt(m_prefs.getString("headlines_font_size_sp", "13"));
 			int headlineSmallFontSize = Math.max(10, Math.min(18, headlineFontSize - 2));
@@ -794,18 +1194,6 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 
 			if (holder.titleView != null) {				
 				holder.titleView.setText(Html.fromHtml(article.title));
-				
-				/* if (m_prefs.getBoolean("enable_condensed_fonts", false)) {
-					Typeface tf = TypefaceCache.get(m_activity, "sans-serif-condensed", article.unread ? Typeface.BOLD : Typeface.NORMAL);
-					
-					if (tf != null && !tf.equals(holder.titleView.getTypeface())) {
-						holder.titleView.setTypeface(tf);
-					}
-					
-					holder.titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, Math.min(21, headlineFontSize + 5));
-				} else {
-					holder.titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, Math.min(21, headlineFontSize + 3));
-				} */
 
                 holder.titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, Math.min(21, headlineFontSize + 3));
 
@@ -1032,145 +1420,11 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
                     holder.flavorImageHolder.setVisibility(View.GONE);
                 }
 
-                /* if (holder.flavorImageView != null && showFlavorImage) {
-                    holder.flavorImageArrow.setVisibility(View.GONE);
-
-                    boolean loadableImageFound = false;
-
-                    if (article.articleDoc != null) {
-
-                        Elements imgs = article.articleDoc.select("img");
-
-                        Element img = null;
-
-                        for (Element tmp : imgs) {
-                            try {
-                                if (Integer.valueOf(tmp.attr("width")) > FLAVOR_IMG_MIN_WIDTH && Integer.valueOf(tmp.attr("width")) > FLAVOR_IMG_MIN_HEIGHT) {
-                                    img = tmp;
-                                    break;
-                                }
-                            } catch (NumberFormatException e) {
-                                //
-                            }
-                        }
-
-                        if (img == null)
-                            img = imgs.first();
-
-                        if (img != null) {
-                            String imgSrc = img.attr("src");
-                            final String imgSrcFirst = imgSrc;
-
-                            // retarded schema-less urls
-                            if (imgSrc.indexOf("//") == 0)
-                                imgSrc = "http:" + imgSrc;
-
-                            DisplayImageOptions options = new DisplayImageOptions.Builder()
-                                    .displayer(new FadeInBitmapDisplayer(500))
-                                    .cacheInMemory(true)
-                                    .resetViewBeforeLoading(true)
-                                    .cacheOnDisk(true)
-                                    .build();
-
-                            ViewCompat.setTransitionName(holder.flavorImageView, "TRANSITION:ARTICLE_IMAGES_PAGER");
-
-                            holder.flavorImageView.setOnClickListener(new OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-
-                                    Intent intent = new Intent(m_activity, ArticleImagesPagerActivity.class);
-                                    intent.putExtra("firstSrc", imgSrcFirst);
-                                    intent.putExtra("title", article.title);
-                                    intent.putExtra("content", article.content);
-
-                                    ActivityOptionsCompat options =
-                                    ActivityOptionsCompat.makeSceneTransitionAnimation(m_activity,
-                                            holder.flavorImageView,   // The view which starts the transition
-                                            "TRANSITION:ARTICLE_IMAGES_PAGER" // The transitionName of the view we’re transitioning to
-                                            );
-                                    ActivityCompat.startActivity(m_activity, intent, options.toBundle());
-
-                                    //startActivityForResult(intent, 0);
-                                }
-                            });
-
-                            final ViewGroup flavorImageHolder = holder.flavorImageHolder;
-                            final ImageView flavorImageView = holder.flavorImageView;
-                            final ProgressBar flavorImageLoadingBar = holder.flavorImageLoadingBar;
-
-                            ImageAware imageAware = new ImageViewAware(holder.flavorImageView, false);
-
-                            flavorImageHolder.setVisibility(View.VISIBLE);
-
-                            if (imgs.size() > 1 && holder.flavorImageArrow != null) {
-                                holder.flavorImageArrow.setVisibility(View.VISIBLE);
-                            }
-
-                            final boolean weNeedAnimation = MemoryCacheUtils.findCachedBitmapsForImageUri(imgSrc, ImageLoader.getInstance().getMemoryCache()).size() == 0;
-
-                            loadableImageFound = true;
-                            ImageLoader.getInstance().displayImage(imgSrc, imageAware, options, new ImageLoadingListener() {
-
-                                @Override
-                                public void onLoadingCancelled(String arg0,
-                                                               View arg1) {
-                                    // TODO Auto-generated method stub
-
-                                }
-
-                                @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-                                @Override
-                                public void onLoadingComplete(String arg0,
-                                                              View arg1, Bitmap arg2) {
-                                    // TODO Auto-generated method stub
-
-                                    if (!isAdded() || arg2 == null) return;
-
-                                    flavorImageLoadingBar.setVisibility(View.INVISIBLE);
-
-                                    if (arg2.getWidth() > FLAVOR_IMG_MIN_WIDTH && arg2.getHeight() > FLAVOR_IMG_MIN_HEIGHT) {
-                                        if (weNeedAnimation) {
-                                            ObjectAnimator anim = ObjectAnimator.ofFloat(flavorImageView, "alpha", 0f, 1f);
-                                            anim.setDuration(200);
-                                            anim.start();
-                                        }
-                                        //flavorImageHolder.setVisibility(View.VISIBLE);
-                                    } else {
-                                        flavorImageHolder.setVisibility(View.GONE);
-                                    }
-                                }
-
-                                @Override
-                                public void onLoadingFailed(String arg0,
-                                                            View arg1, FailReason arg2) {
-                                    // TODO Auto-generated method stub
-                                    flavorImageHolder.setVisibility(View.GONE);
-                                }
-
-                                @Override
-                                public void onLoadingStarted(String arg0,
-                                                             View arg1) {
-                                    // TODO Auto-generated method stub
-
-                                }
-
-                            });
-                        }
-                    }
-
-                    if (!loadableImageFound && holder.flavorImageHolder != null) {
-                        holder.flavorImageHolder.setVisibility(View.GONE);
-                    }
-                } else if (holder.flavorImageHolder != null) {
-                    holder.flavorImageHolder.setVisibility(View.GONE);
-                }
-            } else if (holder.flavorImageHolder != null) {
-                holder.flavorImageHolder.setVisibility(View.GONE); */
             }
-			
+
 			String articleAuthor = article.author != null ? article.author : "";
-			
-			
+
+
 			if (holder.authorView != null) {
 				holder.authorView.setTextSize(TypedValue.COMPLEX_UNIT_SP, headlineSmallFontSize);
 
@@ -1234,7 +1488,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 			}
 
 			return v;
-		}
+		} */
 
 		private void adjustTitleTextView(int score, TextView tv, int position) {
 			int viewType = getItemViewType(position);
@@ -1305,7 +1559,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 
     public Article getArticleAtPosition(int position) {
 		try {
-            return (Article) m_list.getItemAtPosition(position);
+            return (Article) m_adapter.items.get(position);
         } catch (ClassCastException e) {
             return null;
 		} catch (IndexOutOfBoundsException e) {
@@ -1350,7 +1604,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
 		}
 
         if (!m_activity.isTablet()) {
-            if (m_adapter.getCount() > 0) {
+            if (m_adapter.items.size() > 0) {
                 if (firstVisibleItem > m_listPreviousVisibleItem) {
                     m_activity.getSupportActionBar().hide();
                 } else if (firstVisibleItem < m_listPreviousVisibleItem) {
@@ -1382,7 +1636,7 @@ public class HeadlinesFragment extends Fragment implements OnItemClickListener, 
     public int getArticlePositionById(int id) {
         for (Article a : m_adapter.items) {
             if (a.id == id) {
-                return m_adapter.getPosition(a) + m_list.getHeaderViewsCount();
+                return m_adapter.items.indexOf(a);
             }
         }
 
